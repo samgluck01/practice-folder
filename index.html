@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>My To-Do List</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#4a90e2">
+<title>Our To-Do List</title>
 <style>
   * {
     box-sizing: border-box;
@@ -13,8 +15,11 @@
     background: #f2f4f7;
     margin: 0;
     padding: 24px;
+    padding-top: max(24px, env(safe-area-inset-top));
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
     display: flex;
     justify-content: center;
+    min-height: 100vh;
   }
 
   .app {
@@ -24,6 +29,7 @@
     border-radius: 16px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
     padding: 24px;
+    align-self: flex-start;
   }
 
   h1 {
@@ -34,6 +40,127 @@
     color: #222;
   }
 
+  /* ---------- Sign-in screen ---------- */
+
+  #signInScreen p.subtitle {
+    text-align: center;
+    color: #666;
+    margin-top: -12px;
+    margin-bottom: 24px;
+    font-size: 15px;
+  }
+
+  .field-label {
+    display: block;
+    font-size: 14px;
+    font-weight: bold;
+    color: #444;
+    margin-bottom: 6px;
+  }
+
+  .field {
+    margin-bottom: 16px;
+  }
+
+  #signInScreen input[type="email"],
+  #signInScreen input[type="password"] {
+    width: 100%;
+    font-size: 16px; /* 16px+ stops iOS Safari from auto-zooming on focus */
+    padding: 14px;
+    border: 2px solid #ccc;
+    border-radius: 10px;
+    outline: none;
+  }
+
+  #signInScreen input:focus {
+    border-color: #4a90e2;
+  }
+
+  .primary-btn {
+    width: 100%;
+    font-size: 18px;
+    font-weight: bold;
+    padding: 16px;
+    border: none;
+    border-radius: 10px;
+    background: #4a90e2;
+    color: white;
+    cursor: pointer;
+    min-height: 52px;
+  }
+
+  .primary-btn:hover {
+    background: #3a78c2;
+  }
+
+  .primary-btn:disabled {
+    background: #a7c4e8;
+    cursor: default;
+  }
+
+  .link-btn {
+    display: block;
+    width: 100%;
+    text-align: center;
+    background: none;
+    border: none;
+    color: #4a90e2;
+    font-size: 15px;
+    padding: 14px;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  .form-message {
+    font-size: 14px;
+    text-align: center;
+    margin-bottom: 16px;
+    min-height: 18px;
+  }
+
+  .form-message.error {
+    color: #c8432f;
+  }
+
+  .form-message.success {
+    color: #2e8b57;
+  }
+
+  /* ---------- Signed-in header ---------- */
+
+  .account-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    color: #666;
+  }
+
+  .account-bar span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .signout-btn {
+    flex-shrink: 0;
+    background: none;
+    border: 1px solid #ccc;
+    color: #555;
+    font-size: 13px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .signout-btn:hover {
+    background: #f2f4f7;
+  }
+
+  /* ---------- Task list (same design as before) ---------- */
+
   .add-row {
     display: flex;
     gap: 8px;
@@ -42,11 +169,12 @@
 
   #taskInput {
     flex: 1;
-    font-size: 18px;
+    font-size: 16px;
     padding: 14px;
     border: 2px solid #ccc;
     border-radius: 10px;
     outline: none;
+    min-width: 0;
   }
 
   #taskInput:focus {
@@ -62,6 +190,7 @@
     background: #4a90e2;
     color: white;
     cursor: pointer;
+    flex-shrink: 0;
   }
 
   #addBtn:hover {
@@ -83,8 +212,8 @@
   }
 
   .task-item input[type="checkbox"] {
-    width: 26px;
-    height: 26px;
+    width: 28px;
+    height: 28px;
     cursor: pointer;
     flex-shrink: 0;
   }
@@ -111,113 +240,283 @@
     color: white;
     cursor: pointer;
     flex-shrink: 0;
+    min-height: 44px;
   }
 
   .delete-btn:hover {
     background: #c8432f;
   }
 
-  .empty-message {
+  .empty-message,
+  .loading-message {
     text-align: center;
     color: #999;
     font-size: 16px;
     padding: 20px 0;
+  }
+
+  .sync-note {
+    text-align: center;
+    color: #bbb;
+    font-size: 12px;
+    margin-top: 16px;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+
+  @media (max-width: 380px) {
+    body {
+      padding: 12px;
+    }
+    .app {
+      padding: 16px;
+    }
+    h1 {
+      font-size: 24px;
+    }
   }
 </style>
 </head>
 <body>
 
 <div class="app">
-  <h1>My To-Do List</h1>
+  <h1>Our To-Do List</h1>
 
-  <div class="add-row">
-    <input type="text" id="taskInput" placeholder="Type a task..." autofocus>
-    <button id="addBtn">Add</button>
+  <!-- Sign-in screen: shown until someone is logged in -->
+  <div id="signInScreen">
+    <p class="subtitle">Sign in to see the shared list</p>
+
+    <p class="form-message" id="authMessage"></p>
+
+    <div class="field">
+      <label class="field-label" for="emailInput">Email</label>
+      <input type="email" id="emailInput" autocomplete="username" placeholder="you@example.com">
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="passwordInput">Password</label>
+      <input type="password" id="passwordInput" autocomplete="current-password" placeholder="Your password">
+    </div>
+
+    <button class="primary-btn" id="signInBtn">Sign In</button>
+    <button class="link-btn" id="forgotBtn" type="button">Forgot password?</button>
   </div>
 
-  <ul id="taskList"></ul>
-  <p class="empty-message" id="emptyMessage">No tasks yet. Add one above!</p>
+  <!-- Task screen: shown once someone is logged in -->
+  <div id="taskScreen" hidden>
+    <div class="account-bar">
+      <span id="accountEmail"></span>
+      <button class="signout-btn" id="signOutBtn">Sign out</button>
+    </div>
+
+    <div class="add-row">
+      <input type="text" id="taskInput" placeholder="Type a task..." autocomplete="off">
+      <button id="addBtn">Add</button>
+    </div>
+
+    <p class="loading-message" id="loadingMessage">Loading your list...</p>
+    <ul id="taskList" hidden></ul>
+    <p class="empty-message" id="emptyMessage" hidden>No tasks yet. Add one above!</p>
+    <p class="sync-note">Changes sync automatically for both of you.</p>
+  </div>
 </div>
 
-<script>
-  var STORAGE_KEY = "myTodoTasks";
-  var tasks = loadTasks();
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import {
+    getAuth,
+    onAuthStateChanged,
+    signInWithEmailAndPassword,
+    signOut,
+    sendPasswordResetEmail
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import {
+    getFirestore,
+    collection,
+    addDoc,
+    doc,
+    updateDoc,
+    deleteDoc,
+    onSnapshot,
+    query,
+    orderBy,
+    serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-  var taskInput = document.getElementById("taskInput");
-  var addBtn = document.getElementById("addBtn");
-  var taskList = document.getElementById("taskList");
-  var emptyMessage = document.getElementById("emptyMessage");
+  // ---- Firebase project settings ----
+  // These values come from your Firebase project (Project settings > Your apps).
+  // They identify WHICH project to talk to; they are not secret. Access to your
+  // data is protected separately, by Firestore security rules + sign-in.
+  const firebaseConfig = {
+    apiKey: "REPLACE_WITH_YOUR_API_KEY",
+    authDomain: "REPLACE_WITH_YOUR_PROJECT.firebaseapp.com",
+    projectId: "REPLACE_WITH_YOUR_PROJECT_ID",
+    storageBucket: "REPLACE_WITH_YOUR_PROJECT.appspot.com",
+    messagingSenderId: "REPLACE_WITH_YOUR_SENDER_ID",
+    appId: "REPLACE_WITH_YOUR_APP_ID"
+  };
 
-  function loadTasks() {
-    try {
-      var saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // ---- Elements ----
+  const signInScreen = document.getElementById("signInScreen");
+  const taskScreen = document.getElementById("taskScreen");
+  const authMessage = document.getElementById("authMessage");
+  const emailInput = document.getElementById("emailInput");
+  const passwordInput = document.getElementById("passwordInput");
+  const signInBtn = document.getElementById("signInBtn");
+  const forgotBtn = document.getElementById("forgotBtn");
+  const accountEmail = document.getElementById("accountEmail");
+  const signOutBtn = document.getElementById("signOutBtn");
+
+  const taskInput = document.getElementById("taskInput");
+  const addBtn = document.getElementById("addBtn");
+  const taskList = document.getElementById("taskList");
+  const emptyMessage = document.getElementById("emptyMessage");
+  const loadingMessage = document.getElementById("loadingMessage");
+
+  let unsubscribeTasks = null;
+
+  function showAuthMessage(text, kind) {
+    authMessage.textContent = text || "";
+    authMessage.className = "form-message" + (kind ? " " + kind : "");
   }
 
-  function saveTasks() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-    } catch (e) {
-      // If storage isn't available, tasks just won't be saved between visits.
-    }
-  }
+  // ---- Sign in / out ----
 
-  function addTask() {
-    var text = taskInput.value.trim();
-    if (text === "") {
+  signInBtn.addEventListener("click", function () {
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+    if (!email || !password) {
+      showAuthMessage("Enter your email and password.", "error");
       return;
     }
-    tasks.push({ text: text, completed: false });
-    taskInput.value = "";
-    taskInput.focus();
-    saveTasks();
-    render();
+    signInBtn.disabled = true;
+    showAuthMessage("Signing in...");
+    signInWithEmailAndPassword(auth, email, password)
+      .catch(function (err) {
+        showAuthMessage(friendlyAuthError(err), "error");
+      })
+      .finally(function () {
+        signInBtn.disabled = false;
+      });
+  });
+
+  passwordInput.addEventListener("keydown", function (event) {
+    if (event.key === "Enter") {
+      signInBtn.click();
+    }
+  });
+
+  forgotBtn.addEventListener("click", function () {
+    const email = emailInput.value.trim();
+    if (!email) {
+      showAuthMessage("Type your email above first, then tap 'Forgot password?' again.", "error");
+      return;
+    }
+    sendPasswordResetEmail(auth, email)
+      .then(function () {
+        showAuthMessage("Password reset email sent. Check your inbox.", "success");
+      })
+      .catch(function (err) {
+        showAuthMessage(friendlyAuthError(err), "error");
+      });
+  });
+
+  signOutBtn.addEventListener("click", function () {
+    signOut(auth);
+  });
+
+  function friendlyAuthError(err) {
+    const code = err && err.code;
+    if (code === "auth/invalid-email") return "That email address doesn't look right.";
+    if (code === "auth/user-not-found" || code === "auth/invalid-credential") return "Email or password is incorrect.";
+    if (code === "auth/wrong-password") return "Email or password is incorrect.";
+    if (code === "auth/too-many-requests") return "Too many attempts. Please wait a bit and try again.";
+    if (code === "auth/network-request-failed") return "Network problem. Check your connection and try again.";
+    return "Something went wrong signing in. Please try again.";
   }
 
-  function toggleTask(index) {
-    tasks[index].completed = !tasks[index].completed;
-    saveTasks();
-    render();
-  }
-
-  function deleteTask(index) {
-    tasks.splice(index, 1);
-    saveTasks();
-    render();
-  }
-
-  function render() {
-    taskList.innerHTML = "";
-
-    if (tasks.length === 0) {
-      emptyMessage.style.display = "block";
-    } else {
-      emptyMessage.style.display = "none";
+  onAuthStateChanged(auth, function (user) {
+    if (unsubscribeTasks) {
+      unsubscribeTasks();
+      unsubscribeTasks = null;
     }
 
-    tasks.forEach(function (task, index) {
-      var li = document.createElement("li");
+    if (user) {
+      signInScreen.hidden = true;
+      taskScreen.hidden = false;
+      accountEmail.textContent = "Signed in as " + user.email;
+      passwordInput.value = "";
+      showAuthMessage("");
+      startTaskSync();
+    } else {
+      signInScreen.hidden = false;
+      taskScreen.hidden = true;
+      loadingMessage.hidden = false;
+      taskList.hidden = true;
+      emptyMessage.hidden = true;
+      taskList.innerHTML = "";
+    }
+  });
+
+  // ---- Task list (synced with Firestore) ----
+
+  function startTaskSync() {
+    const tasksQuery = query(collection(db, "tasks"), orderBy("createdAt", "asc"));
+    unsubscribeTasks = onSnapshot(
+      tasksQuery,
+      function (snapshot) {
+        loadingMessage.hidden = true;
+        renderTasks(snapshot.docs);
+      },
+      function (error) {
+        loadingMessage.hidden = true;
+        loadingMessage.textContent = "Couldn't load the list (" + error.code + ").";
+        loadingMessage.hidden = false;
+      }
+    );
+  }
+
+  function renderTasks(docs) {
+    taskList.innerHTML = "";
+
+    if (docs.length === 0) {
+      taskList.hidden = true;
+      emptyMessage.hidden = false;
+      return;
+    }
+
+    taskList.hidden = false;
+    emptyMessage.hidden = true;
+
+    docs.forEach(function (docSnap) {
+      const task = docSnap.data();
+      const id = docSnap.id;
+
+      const li = document.createElement("li");
       li.className = "task-item" + (task.completed ? " completed" : "");
 
-      var checkbox = document.createElement("input");
+      const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
-      checkbox.checked = task.completed;
+      checkbox.checked = !!task.completed;
       checkbox.addEventListener("change", function () {
-        toggleTask(index);
+        updateDoc(doc(db, "tasks", id), { completed: checkbox.checked });
       });
 
-      var span = document.createElement("span");
+      const span = document.createElement("span");
       span.className = "task-text";
       span.textContent = task.text;
 
-      var deleteBtn = document.createElement("button");
+      const deleteBtn = document.createElement("button");
       deleteBtn.className = "delete-btn";
       deleteBtn.textContent = "Delete";
       deleteBtn.addEventListener("click", function () {
-        deleteTask(index);
+        deleteDoc(doc(db, "tasks", id));
       });
 
       li.appendChild(checkbox);
@@ -227,14 +526,28 @@
     });
   }
 
+  function addTask() {
+    const text = taskInput.value.trim();
+    if (text === "") {
+      return;
+    }
+    const user = auth.currentUser;
+    taskInput.value = "";
+    taskInput.focus();
+    addDoc(collection(db, "tasks"), {
+      text: text,
+      completed: false,
+      createdAt: serverTimestamp(),
+      createdBy: user ? user.email : null
+    });
+  }
+
   addBtn.addEventListener("click", addTask);
   taskInput.addEventListener("keydown", function (event) {
     if (event.key === "Enter") {
       addTask();
     }
   });
-
-  render();
 </script>
 
 </body>
