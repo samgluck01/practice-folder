@@ -316,6 +316,8 @@
       <button id="addBtn">Add</button>
     </div>
 
+    <p class="form-message error" id="taskError" hidden></p>
+
     <p class="loading-message" id="loadingMessage">Loading your list...</p>
     <ul id="taskList" hidden></ul>
     <p class="empty-message" id="emptyMessage" hidden>No tasks yet. Add one above!</p>
@@ -378,6 +380,18 @@
   const taskList = document.getElementById("taskList");
   const emptyMessage = document.getElementById("emptyMessage");
   const loadingMessage = document.getElementById("loadingMessage");
+  const taskError = document.getElementById("taskError");
+
+  function showTaskError(err) {
+    const code = (err && err.code) || "unknown-error";
+    taskError.textContent = "Something went wrong (" + code + "). Please try again.";
+    taskError.hidden = false;
+  }
+
+  function clearTaskError() {
+    taskError.hidden = true;
+    taskError.textContent = "";
+  }
 
   let unsubscribeTasks = null;
 
@@ -505,7 +519,11 @@
       checkbox.type = "checkbox";
       checkbox.checked = !!task.completed;
       checkbox.addEventListener("change", function () {
-        updateDoc(doc(db, "tasks", id), { completed: checkbox.checked });
+        clearTaskError();
+        updateDoc(doc(db, "tasks", id), { completed: checkbox.checked }).catch(function (err) {
+          checkbox.checked = !checkbox.checked; // revert the visual change since it didn't actually save
+          showTaskError(err);
+        });
       });
 
       const span = document.createElement("span");
@@ -516,7 +534,8 @@
       deleteBtn.className = "delete-btn";
       deleteBtn.textContent = "Delete";
       deleteBtn.addEventListener("click", function () {
-        deleteDoc(doc(db, "tasks", id));
+        clearTaskError();
+        deleteDoc(doc(db, "tasks", id)).catch(showTaskError);
       });
 
       li.appendChild(checkbox);
@@ -532,6 +551,7 @@
       return;
     }
     const user = auth.currentUser;
+    clearTaskError();
     taskInput.value = "";
     taskInput.focus();
     addDoc(collection(db, "tasks"), {
@@ -539,6 +559,9 @@
       completed: false,
       createdAt: serverTimestamp(),
       createdBy: user ? user.email : null
+    }).catch(function (err) {
+      taskInput.value = text; // put it back so nothing is lost
+      showTaskError(err);
     });
   }
 
